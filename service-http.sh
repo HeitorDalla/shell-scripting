@@ -2,6 +2,7 @@
 
 # Esse e um script que via iniciar uma aplicacao, pelo apache2 e vai usar um template pronto da internet
 
+# Ativa o modo de seguranca do bash. Falha em qualquer erro e se variaveis nao foram definidas
 set -euo pipefail
 
 # Verificar se as permissoes que o script esta rodando
@@ -10,12 +11,12 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
-PACKAGE="apache2 wget curl unzip"
+PACKAGE="apache2 wget curl unzip rsync"
 SVC="apache2"
 SVC_DIR="/var/www/html"
 TEMP_DIR="/tmp/service-http"
-URL="https://www.tooplate.com/zip-templates/2154_split_portfolio.zip"
-TEMPLATE_NAME="2154_split_portfolio"
+URL="https://www.tooplate.com/zip-templates/2148_bistro_elegance.zip"
+TEMPLATE_NAME="2148_bistro_elegance"
 
 echo "#####################################"
 echo "Baixando os packages necessarios para a aplicacao..."
@@ -34,8 +35,7 @@ echo
 echo "#####################################"
 echo "Criando uma pasta temporaria para armazenar o template..."
 echo "#####################################"
-mkdir -p "$TEMP_DIR" || exit 1
-
+mkdir -p "$TEMP_DIR"
 cd "$TEMP_DIR"
 echo
 
@@ -56,4 +56,4 @@ echo
 echo "#####################################"
 echo "Copiando template para dentro da pasta /var/www/html/ ..."
 echo "#####################################"
-cp -r $TEMPLATE_NAME/* $SVC_DIR
+rsync -av --delete "$TEMPLATE_NAME"/ "$SVC_DIR"/
