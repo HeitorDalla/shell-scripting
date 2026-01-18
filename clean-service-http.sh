@@ -6,7 +6,7 @@
 set -euo pipefail # qualquer comando que retorna erro (≠ 0), o script PARA IMEDIATAMENTE
 
 # Verificar as permissoes que o script esta rodando
-if [ $EUID -ne 0 ]; then
+if [ "$EUID" -ne 0 ]; then
     echo "Execute como root!"
     exit 1
 fi
