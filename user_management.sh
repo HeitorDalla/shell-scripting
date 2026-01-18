@@ -49,5 +49,13 @@ while IFS=";" read -r user group shell; do
         useradd -m -c "Criando usuario por meio de script" -s "$shell" -g "$group" "$user" |& tee -a "$LOG_FILE"
 
         echo "Usuario - $user - criado!" | tee -a "$LOG_FILE"
+
+        # Define uma senha padra
+        echo "$user:senha123" | chpasswd | tee -a "$LOG_FILE"
+
+        # Forca a troca no primeiro login
+        chage -d 0 "$user" | tee -a "$LOG_FILE"
+
+        echo "Credenciais iniciadas configuradas para $user" | tee -a "$LOG_FILE"
     fi  
 done < "$INPUT"
