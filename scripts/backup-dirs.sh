@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Esse scritp tem por objetivo fazer um backup com versionamento das pastas `/etc` e `/home`
+# Esse scritp tem por objetivo fazer um backup com versionamento das pastas `/etc`
 
 # Ativando o modo seguranca do bash
 set -euo pipefail
