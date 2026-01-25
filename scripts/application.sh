@@ -82,3 +82,48 @@ systemctl daemon-reload
 systemctl enable $NAME_SERVICE.service
 systemctl start $NAME_SERVICE.service
 
+# Criando uma pasta para armazenar um template temporario
+echo "Criando uma pasta temporaria para armazenar o template..." | tee -a "$LOG_FILE"
+mkdir -p "$TEMP_DIR" || true
+cd "$TEMP_DIR"
+
+# Baixando template da internet
+echo "Baixando o template da internet..." | tee -a "$LOG_FILE"
+if [ ! -f "$TEMPLATE_NAME.zip" ]; then
+    wget $URL > /dev/null
+fi
+
+# Descompactando o arquivo zipado
+echo "Descompactando arquivo zipado na pasta temporaria..." | tee -a "$LOG_FILE"
+unzip -o "$TEMPLATE_NAME.zip" > /dev/null
+
+# Fazendo backup preventivo da versao atual
+echo "Criando backup da versao atual..." | tee -a "$LOG_FILE"
+if [ -d "$SVC_DIR" ] && [ "$(ls -A "$SVC_DIR")" ]; then
+    tar -czvf /tmp/backup_site.tar.gz "$SVC_DIR"/
+else
+    echo "Diretorio vazio, pulando backup" | tee -a "$LOG_FILE"
+fi
+
+# Copiando template para a pasta de deploy
+echo "Copiando template para dentro da pasta /var/www/html/ ..." | tee -a "$LOG_FILE"
+rsync -av --delete "$TEMPLATE_NAME"/ "$SVC_DIR"/
+
+# Ajustando permissoes
+chown -R "$USER:$GROUP" "$SVC_DIR"
+chmod -R 755 "$SVC_DIR"
+
+# Testanto se a aplicacao
+if curl -sf http://localhost > /dev/null; then
+    echo "SUCESSO: O deploy esta funcionando!" | tee -a "$LOG_FILE"
+else
+    echo "ERRO: O deploy falhou!" | tee -a "$ERROR_LOG"
+
+    # Restaurando backup
+    rm -rf "$SVC_DIR"/*
+    tar -xzf /tmp/backup_site.tar.gz -C "$SVC_DIR" --strip-components=1
+    systemctl restart $NAME_SERVICE
+
+    echo "Rollback finalizado. Versao anterior restaurada." | tee -a "$LOG_FILE"
+    exit 1
+fi
