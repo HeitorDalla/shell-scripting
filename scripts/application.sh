@@ -5,6 +5,13 @@
 # Ativando o modo de seguranca do bash
 set -euo pipefail
 
+# Log
+LOG_FILE="/var/log/bistro_deploy.log"
+mkdir -p "$(dirname "$LOG_FILE")"
+
+# Redireciona tudo para o log e para a tela
+exec > >(tee -a "$LOG_FILE") 2>&1
+
 # Verificando usuario de execucao
 if [ "$EUID" -ne 0 ]; then
     echo "Execute como root"
@@ -24,36 +31,32 @@ TEMP_DIR="/tmp/service-http"
 URL="https://www.tooplate.com/zip-templates/2148_bistro_elegance.zip"
 TEMPLATE_NAME="2148_bistro_elegance"
 
-# Logs
-LOG_FILE="/tmp/application_service.log"
-ERROR_LOG="/tmp/error_application_service.log"
-
-echo "--- Iniciando Deploy ---" | tee -a "$LOG_FILE"
+echo "--- Iniciando Deploy ---"
 
 # Baixando libs necessarias para a aplicacao
-echo "--- Baixando libs necessarias para a aplicacao ---" | tee -a "$LOG_FILE"
-apt update -y
-apt install curl apache2 rsync zip unzip wget -y > /dev/null 2>> "$ERROR_LOG"
+echo "--- Baixando libs necessarias para a aplicacao ---"
+apt update -y > /dev/null
+apt install curl apache2 rsync zip unzip wget -y > /dev/null
 
 # Criando grupo e usuario exclusivo para rodar a aplicacao
 if ! getent group "$GROUP" > /dev/null 2>&1; then 
-    echo "Criando grupo $GROUP" | tee -a "$LOG_FILE"
+    echo "Criando grupo $GROUP"
     groupadd $GROUP
 else
-    echo "O grupo $GROUP ja esta criado!" | tee -a "$LOG_FILE"
+    echo "O grupo $GROUP ja esta criado!"
 fi
 
 # Verificando se usuario ja existe
 if ! getent passwd "$USER" > /dev/null 2>&1; then        
-    echo "Criando usuario $USER" | tee -a "$LOG_FILE"
-    useradd -r -m -c "Usuario criado com shell scripting" -s /usr/sbin/nologin -g $GROUP $USER |& tee -a "$LOG_FILE"
+    echo "Criando usuario $USER"
+    useradd -r -m -c "Usuario criado com shell scripting" -s /usr/sbin/nologin -g $GROUP $USER
 else
-    echo "Usuario $USER ja existe!" | tee -a "$LOG_FILE"
+    echo "Usuario $USER ja existe!"
 fi
 
 # Criando servico (.service) personalizado
 if [ ! -f "$FULL_PATH" ]; then   
-    echo "Criando o servico $NAME_SERVICE" | tee -a "$LOG_FILE"
+    echo "Criando o servico $NAME_SERVICE"
 
 cat <<EOF > "$FULL_PATH"
 [Unit]
@@ -73,40 +76,40 @@ WantedBy=multi-user.target
 EOF
 
 else
-    echo "O arquivo de configuracao $NAME_SERVICE.service ja existe!" | tee -a "$LOG_FILE"
+    echo "O arquivo de configuracao $NAME_SERVICE.service ja existe!"
 fi
 
 # Reiniciando aplicacao
-echo "Configurando systemd..." | tee -a "$LOG_FILE"
+echo "Configurando systemd..."
 systemctl daemon-reload
 systemctl enable $NAME_SERVICE.service
 systemctl start $NAME_SERVICE.service
 
 # Criando uma pasta para armazenar um template temporario
-echo "Criando uma pasta temporaria para armazenar o template..." | tee -a "$LOG_FILE"
+echo "Criando uma pasta temporaria para armazenar o template..."
 mkdir -p "$TEMP_DIR" || true
 cd "$TEMP_DIR"
 
 # Baixando template da internet
-echo "Baixando o template da internet..." | tee -a "$LOG_FILE"
+echo "Baixando o template da internet..."
 if [ ! -f "$TEMPLATE_NAME.zip" ]; then
     wget $URL > /dev/null
 fi
 
 # Descompactando o arquivo zipado
-echo "Descompactando arquivo zipado na pasta temporaria..." | tee -a "$LOG_FILE"
+echo "Descompactando arquivo zipado na pasta temporaria..."
 unzip -o "$TEMPLATE_NAME.zip" > /dev/null
 
 # Fazendo backup preventivo da versao atual
-echo "Criando backup da versao atual..." | tee -a "$LOG_FILE"
+echo "Criando backup da versao atual..."
 if [ -d "$SVC_DIR" ] && [ "$(ls -A "$SVC_DIR")" ]; then
     tar -czvf /tmp/backup_site.tar.gz "$SVC_DIR"/
 else
-    echo "Diretorio vazio, pulando backup" | tee -a "$LOG_FILE"
+    echo "Diretorio vazio, pulando backup"
 fi
 
 # Copiando template para a pasta de deploy
-echo "Copiando template para dentro da pasta /var/www/html/ ..." | tee -a "$LOG_FILE"
+echo "Copiando template para dentro da pasta /var/www/html/ ..."
 rsync -av --delete "$TEMPLATE_NAME"/ "$SVC_DIR"/
 
 # Ajustando permissoes
@@ -115,15 +118,15 @@ chmod -R 755 "$SVC_DIR"
 
 # Testanto se a aplicacao
 if curl -sf http://localhost > /dev/null; then
-    echo "SUCESSO: O deploy esta funcionando!" | tee -a "$LOG_FILE"
+    echo "SUCESSO: O deploy esta funcionando!"
 else
-    echo "ERRO: O deploy falhou!" | tee -a "$ERROR_LOG"
+    echo "ERRO: O deploy falhou!"
 
     # Restaurando backup
     rm -rf "$SVC_DIR"/*
     tar -xzf /tmp/backup_site.tar.gz -C "$SVC_DIR" --strip-components=1
     systemctl restart $NAME_SERVICE
 
-    echo "Rollback finalizado. Versao anterior restaurada." | tee -a "$LOG_FILE"
+    echo "Rollback finalizado. Versao anterior restaurada."
     exit 1
 fi
