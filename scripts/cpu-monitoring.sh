@@ -31,3 +31,28 @@ INTERVALO="${INTERVALO:-60}"
 
 CONTADOR=0
 
+while true; do
+    # Ver uso total da CPU
+    USO_CPU=$(LC_ALL=C mpstat 1 1 | awk '/Average:/ {printf("%.2f", 100 - $NF)}')
+
+    # Verificando os 5 processos que mais utilizam CPU
+    TOP5=$(top -b -n 1 | awk '{print $1, $2, $9, $10, $12}' | sed -n '7,12p')
+
+    if (( $(echo "$USO_CPU > $LIMITE_CPU" | bc -l) ));then
+        echo "A utilização da CPU atingiu $USO_CPU!"
+
+        CONTADOR=$((CONTADOR+1))
+    else
+        CONTADOR=0
+    fi
+
+    # Se atingiu os ciclos - ALERTA
+    if [ "$CONTADOR" -ge "$CICLOS" ];then
+        echo "$(date) ALERTA: CPU=$USO_CPU% Acima do limite"
+        echo "$TOP5"
+        CONTADOR=0
+    fi
+
+    # Esperar o intervalo e repete
+    sleep "$INTERVALO"
+done
