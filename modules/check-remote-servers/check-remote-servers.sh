@@ -15,14 +15,19 @@ else
 fi
 
 # Verificando a conexao com uma lista de servidores remotos
-HOSTS_FILE="/home/heitor/hosts.txt"
+HOSTS_FILE="$(dirname "$0")/hosts.txt"
 
-for host in "$(cat $HOSTS_FILE)"
+if [[ ! -f "$HOSTS_FILE" ]]; then
+    echo "Arquivo hosts.txt nao encontrado!"
+    exit 1
+fi
 
-do
-    if ping -c1 $host &> /dev/null; then
+while read -r host; do
+    [[ -z "$host" ]] && continue
+
+    if ping -c1 "$host" &> /dev/null; then
         echo "O servidor $host esta disponivel"
     else
         echo "O servidor $host nao esta disponivel"
     fi
-done
+done < "$HOSTS_FILE"
