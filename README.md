@@ -21,8 +21,7 @@ A proposta do projeto é servir como um **laboratório prático**, onde cada scr
 ```
 shell-scripting/
 ├── README.md        # Documentação geral do projeto
-├── scripts/         # Scripts Bash
-├── docs/            # Documentação dos scripts
+├── modules/          # Scripts e Documentação dos scripts
 └── examples/        # Arquivos de exemplo
 ```
 
@@ -71,12 +70,12 @@ cd shell-scripting
 
 2. Dê permissão de execução aos scripts:
 ```bash
-chmod +x scripts/**/*.sh
+chmod +x modules/**/*.sh
 ```
 
 3. Execute o script desejado:
 ```bash
-sudo ./scripts/script.sh
+sudo ./modules/NOME-DO-MODULO/NOME-DO-SCRIPT.sh
 ```
 
 > ⚠️ **Atenção:** alguns scripts alteram arquivos do sistema, usuários ou serviços. Sempre leia o código antes de executar.
